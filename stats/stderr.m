@@ -1,0 +1,48 @@
+function [y, n] = stderr(varargin)
+%STDERR Standard error of the mean, ignore NaN.
+%   For vectors, Y = STDERR(X) returns the standard deviation.  For matrices,
+%   Y is a row vector containing the standard deviation of each column.  For
+%   N-D arrays, STD operates along the first non-singleton dimension of X.
+%
+%   STD normalizes Y by (N-1), where N is the sample size.  This is the
+%   sqrt of an unbiased estimator of the variance of the population from
+%   which X is drawn, as long as X consists of independent, identically
+%   distributed samples.
+%
+%   Y = STD(X,1) normalizes by N and produces the square root of the second
+%   moment of the sample about its mean.  STD(X,0) is the same as STD(X).
+%
+%   Y = STD(X,FLAG,DIM) takes the standard deviation along the dimension
+%   DIM of X.  Pass in FLAG==0 to use the default normalization by N-1, or
+%   1 to use N.
+%
+%   Example: If X = [4 -2 1
+%                    9  5 7]
+%     then std(X,0,1) is [3.5355 4.9497 4.2426] and std(X,0,2) is [3.0
+%                                                                  2.0]
+%   Class support for input X:
+%      float: double, single
+%
+%   See also COV, MEAN, VAR, MEDIAN, CORRCOEF.
+
+%   Copyright 1984-2004 The MathWorks, Inc.
+%   $Revision: 5.25.4.2 $  $Date: 2004/03/09 16:16:30 $
+
+% Input data
+x = varargin{1};
+
+% Compute standard error along this dimension
+if nargin < 3; dim = 1; else dim = varargin{3}; end
+
+% Flip row vector
+if size(x,1) == 1 && ndims(x) == 2; flip = 1; x = x'; else flip = 0; end
+
+% Call var(x,flag,dim) with as many of those args as are present.
+y = sqrt(nanvar(varargin{:}));
+
+% Compute effective data size
+n = size(x, dim) - sum(isnan(x), dim);
+
+y = y./sqrt(n);
+
+if flip; y = y'; end
