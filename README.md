@@ -60,7 +60,7 @@ Probability distributions, MCMC samplers and other statistics-related functions.
 - *maxsample.m*: Stochastic exploration of high-valued regions of a function (untested)
 - *mhsamplecon.m*: Metropolis-Hastings with reflective constraints (untested)
 - *moments.m*: Central moments of discrete distribution
-- (++) *qranddvm.m*: Quick Von Mises distributed pseudorandom numbers (faster than *circ_vmrnd.m* from the [Circular Statistics Toolbox](http://bethgelab.org/software/circstat/))
+- (++) *qrandvm.m*: Quick Von Mises distributed pseudorandom numbers (faster than *circ_vmrnd.m* from the [Circular Statistics Toolbox](http://bethgelab.org/software/circstat/))
 - *randntrim.m*: Normally distributed trimmed pseudorandom numbers (dumb rejection method)
 - *randx.m*: Uniformly distributed non-overlapping random points
 - *samplemeanpdf.m*: Sampling distribution of the mean (see also *samplemeanpdf_test.m*)
