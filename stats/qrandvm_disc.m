@@ -1,4 +1,4 @@
-function alpha = qranddvm(theta,kappa,n,drop)
+function alpha = qrandvm_disc(theta,kappa,n,drop)
 %QRANDDVM Quick discretised Von Mises distributed pseudorandom numbers.
 %
 %   ALPHA = QRANDDVM(THETA,KAPPA,N) returns a column vector of N pseudorandom 
