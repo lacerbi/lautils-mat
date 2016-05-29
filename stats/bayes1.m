@@ -50,7 +50,7 @@ switch lower(lossfun)
     case {'mean', 'mse'}
         xmesh = linspace(x1, x2, n);
         fx = f(xmesh);
-        x = trapz(fx.*xmesh)/trapz(fx);
+        x = qtrapz(fx.*xmesh)/qtrapz(fx);
         % x = quad(@(x) x.*f(x), x1, x2)/quad(f, x1, x2);
             
     case 'median'

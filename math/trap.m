@@ -28,6 +28,6 @@ T = 0;
 Z = linspace(a, b, n);
 dz = (b - a)/(n-1);
 if (size(Z, 2) < 2); return; end
-T = dz*trapz(funfcn(Z));
+T = dz*qtrapz(funfcn(Z));
 
 end

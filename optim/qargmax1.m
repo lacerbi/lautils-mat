@@ -2,10 +2,6 @@ function xm = qargmax1(x,v,dim)
 %QARGMAX1  Quick numerical argmax via 1-D interpolation.
 %   XM = QARGMAX1(X,V) estimates the location XM of the maximum of the 
 %   underlying function V=F(X), obtained via quadratic 1-D interpolation.
-%
-%   QTRAPZ is potentially much faster than TRAPZ with *large* matrices.
-%
-%   See also TRAPZ.
 
 % By default compute maximum along the first non-singleton dimension
 if nargin < 3; dim = find(size(v)>1,1); end    

@@ -1,4 +1,4 @@
-function z = qtrapz(y,dim)
+function z = qcumtrapz(y,dim)
 %QCUMTRAPZ Quick cumulative trapezoidal numerical integration.
 %   Z = QCUMTRAPZ(Y) computes an approximation of the cumulative
 %   integral of Y via the trapezoidal method (with unit spacing).  To

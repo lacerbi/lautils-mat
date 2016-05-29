@@ -1,5 +1,5 @@
 function yi = gpinterp1(x, y, xi)
-%GPITNERP1 1-D interpolation using Gaussian processes
+%GPINTERP1 1-D interpolation using Gaussian processes
 %   YI = INTERP1(X,Y,XI) interpolates to find YI, the values of the
 %   underlying function Y at the points in the array XI. X must be a
 %   vector of length N.

@@ -1,5 +1,5 @@
 function mms = moments(x, p)
-% MOMENTS Return central moments of a given distribution.
+% MOMENTS Central moments of a given distribution.
 %
 %   MMS = MOMENTS(X, P)
 %   returns the mean, standard deviation, skewness and kurtosis of a 
