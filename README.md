@@ -25,7 +25,7 @@ Numerical and math-related functions.
 
 Optimization algorithms and related functions.
 
-- `cmaes_wrapper.m`: A wrapper with a simplified interface for the CMA-ES algorithm (requires `[cmaes.m](https://www.lri.fr/~hansen/cmaes_inmatlab.html)`)
+- `cmaes_wrapper.m`: A wrapper with a simplified interface for the CMA-ES algorithm (requires [`cmaes.m`](https://www.lri.fr/~hansen/cmaes_inmatlab.html))
 - `coordtransf.m`: Coordinate transform
 - `fminfold.m`: Multi-fold optimization (work in progress); uses `fminfold_wrap.m`
 - `fmingrid.m`: Multidimensional minimization via grid search
