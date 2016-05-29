@@ -7,8 +7,6 @@ Functions marked with (++) have been game-changers for several projects.
 
 Functions are loosely divided in folders by category.
 
-### General
-
 ### Math (./math)
 
 Numerical and math-related functions. 
