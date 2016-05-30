@@ -17,6 +17,7 @@ Numerical and math-related functions.
 - `fhess.m`: Estimation of function Hessian via finite differences
 - `intpower.m`: Array integer power (faster than `.^` with large matrices)
 - (+) `lininterp1.m`: Linear 1D interpolation on a regular grid (like `interp1.m`, but faster)
+- `logsumexp.m`: Compute `log(sum(exp(X)))` while avoiding numerical underflow
 - `nansumall.m`: Sum of all elements, ignoring NaN values
 - (+) `qcumtrapz.m`: Quick cumulative trapezoidal numerical integration
 - (++) `qtrapz.m`: Quick trapezoidal numerical integration (3-4 times faster than `trapz.m` on large arrays)
