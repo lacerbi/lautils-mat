@@ -125,134 +125,189 @@ if ~isfield(options,'InitRange') || isempty(options.InitRange)
     warning('''InitRange'' field of OPTIONS structure not specified. Using full LB and UB range.');
 end
 
-% Default options
-Method = cgetfield(options,'Method',{'fminsearch'});        % Optimization method
-MaxFunEvals = cgetfield(options,'MaxFunEvals',200*nvars);   % Max function evaluations
-MaxIter = cgetfield(options,'MaxIter',200*nvars);           % Max iterations
-TolFun = cgetfield(options,'TolFun',1e-4);                  % TolFun
-TolX = cgetfield(options,'TolX',1e-6);                      % TolX
-OptimOptions = cgetfield(options,'OptimOptions',[]);        % Local optimizer options
-Display = cgetfield(options,'Display','off');               % Display level
-OutputFcn = cgetfield(options,'OutputFcn',[]);              % Output function
-InitRange = cgetfield(options,'InitRange',[LB;UB]);         % Initial range
-x0 = cgetfield(options,'InitialPoints',[]);                 % Starting minimization
-MidpointStart = cgetfield(options,'MidpointStart','on');    % Include midpoint
-XScale = cgetfield(options,'XScale',[]);                    % Characteristic length scale in X
-FvalScale = cgetfield(options,'FvalScale',1);               % Characteristic function amplitude
-RescaleVars = cgetfield(options,'RescaleVars','off');       % Rescale variables
-Cache = cgetfield(options,'Chache','on');                   % Cache intermediate fcn evaluations
-CacheSize = cgetfield(options,'ChacheSize',1e5);            % Cache size
+defopts.Method = 'fminsearch';          % Optimization method
+defopts.MaxFunEvals = 200*nvars;        % Max function evaluations
+defopts.MaxIter = 200*nvars;            % Max iterations
+defopts.TolFun = 1e-4;                  % TolFun
+defopts.TolX = 1e-6;                    % TolX
+defopts.OptimOptions = [];              % Local optimizer options
+defopts.Display = 'off';                % Display level
+defopts.OutputFcn = [];                 % Output function
+defopts.InitRange = [LB; UB];           % Initial range
+defopts.x0 = [];                        % Starting minimization
+defopts.MidpointStart = 'on';           % Include midpoint
+defopts.XScale = [];                    % Characteristic length scale in X
+defopts.FvalScale = 1;                  % Characteristic function amplitude
+defopts.RescaleVars = 'off';            % Rescale variables
+defopts.Cache = 'on';                   % Cache intermediate fcn evaluations
+defopts.CacheSize = 1e5;                % Cache size
+defopts.LoadFile    = '';               % Load interrupted sampling from file
+defopts.SaveFile    = '';               % Save sampling to file
+defopts.SaveTime    = 1e4;              % Save every this number of seconds
 
-if ~iscell(Method); Method = {Method}; end
-if ~iscell(Display); Display = {Display}; end
-if ~iscell(OptimOptions); OptimOptions = {OptimOptions}; end
+for f = fields(defopts)'
+    if ~isfield(options,f{:}) || isempty(options.(f{:}))
+        options.(f{:}) = defopts.(f{:});
+    end
+end
+
+% Cellify fields
+for f = {'Method','Display','OptimOptions'}
+    if ~iscell(options.(f{:})); options.(f{:}) = {options.(f{:})}; end
+end
 if ~isempty(vararginarray) && ~iscell(vararginarray); vararginarray = {vararginarray}; end
 
-if iscell(MaxFunEvals); MaxFunEvals = cell2mat(MaxFunEvals); end
-if iscell(MaxIter); MaxIter = cell2mat(MaxIter); end
-if iscell(TolFun); TolFun = cell2mat(TolFun); end
-if iscell(TolX); TolX = cell2mat(TolX); end
+% Matrixfy fields
+for f = {'MaxFunEvals','MaxIter','TolFun','TolX'}
+    if iscell(options.(f{:})); options.(f{:}) = cell2mat(options.(f{:})); end
+end
 
 % Convert string, numerical or logical variables to 'on' and 'off'
-MidpointStart = onoff(MidpointStart);
-RescaleVars = onoff(RescaleVars);
-Cache = onoff(Cache);
-
-% Reasonable lower and upper bounds
-RLB = InitRange(1,:); RUB = InitRange(2,:);
-if isscalar(RLB); RLB = RLB*ones(1,nvars); end
-if isscalar(RUB); RUB = RUB*ones(1,nvars); end
-RLB = max(RLB,LB); RUB = min(RUB,UB);
-
-% Characteristic length scale from reasonable range
-if isempty(XScale); XScale = (RUB - RLB)/sqrt(12); end
-
-maxEpochs = length(nStarts);
-output.x = []; output.startx = []; output.nruns = 0;
-x = NaN(1,nvars);
-fvalmin = Inf;
-
-if ~isempty(OutputFcn)
-    optimValues.funccount = 0;
-    optimValues.x = x;
-    optimValues.fval = fvalmin;
-    optimValues.epoch = 0;
-    optimValues.iteration = 0;
-    optimValues.procedure = [];
-    stop = OutputFcn(x0,optimValues,'init');
+for f = {'MidpointStart','RescaleVars','Cache'}
+    options.(f{:}) = onoff(options.(f{:}));
 end
 
-% Caching intermediate points
-if strcmpi(Cache,'on')
-    cache.x = NaN(CacheSize,nvars);
-    cache.fval = NaN(CacheSize,1);
-    cache.index = 1;
-else
-    cache.x = [];
-    cache.fval = [];
-    cache.index = 0;
-end
+x0 = options.x0;
 
+if ~isempty(options.LoadFile) && exist(options.LoadFile,'file')
+    %% Load interrupted execution from file
+    
+    optionsnew = options;           % Store current options    
+    load(options.LoadFile,'-mat');  % Load run from recovery file
+    % Start epoch and inner loop from recovered iteration
+    iEpoch0 = iEpoch;
+    iStart0 = iStart;
+    % if trace > 1; 
+        fprintf('Loading sampling from file ''%s''.\n', options.LoadFile); 
+    % end
 
-if strcmp(RescaleVars,'on')
-    octstruct = optimct(nvars,LB,UB,RLB,RUB);
-    LB = octstruct.lb(:)';
-    UB = octstruct.ub(:)';
-    RLB = octstruct.plb(:)';
-    RUB = octstruct.pub(:)';
-    XScale = 2*octstruct.gamma(:)'.*(XScale./diff(InitRange,[],1));
-    InitRange = [octstruct.plb(:)'; octstruct.pub(:)'];
-    if ~isempty(x0)
-        for i = 1:size(x0,1); x0(i,:) = optimct(x0(i,:),octstruct); end
+    % Copy some new OPTIONS to the old options structure
+    copyfields = {'LoadFile','SaveFile','SaveTime','Display'};    
+    for f = 1:numel(copyfields)    
+        options.(copyfields{f}) = optionsnew.(copyfields{f});
     end
+    clear copyfields f optionsnew;
 else
-    octstruct = [];
+
+    % Reasonable lower and upper bounds
+    RLB = options.InitRange(1,:); RUB = options.InitRange(2,:);
+    if isscalar(RLB); RLB = RLB*ones(1,nvars); end
+    if isscalar(RUB); RUB = RUB*ones(1,nvars); end
+    RLB = max(RLB,LB); RUB = min(RUB,UB);
+
+    % Characteristic length scale from reasonable range
+    if isempty(options.XScale); options.XScale = (RUB - RLB)/sqrt(12); end
+
+    maxEpochs = length(nStarts);
+    output.x = []; output.startx = []; output.nruns = 0;
+    x = NaN(1,nvars);
+    fvalmin = Inf;
+
+    if ~isempty(options.OutputFcn)
+        optimValues.funccount = 0;
+        optimValues.x = x;
+        optimValues.fval = fvalmin;
+        optimValues.epoch = 0;
+        optimValues.iteration = 0;
+        optimValues.procedure = [];
+        stop = options.OutputFcn(x0,optimValues,'init');
+    end
+
+    % Caching intermediate points
+    if strcmpi(options.Cache,'on')
+        cache.x = NaN(options.CacheSize,nvars);
+        cache.fval = NaN(options.CacheSize,1);
+        cache.index = 1;
+    else
+        cache.x = [];
+        cache.fval = [];
+        cache.index = 0;
+    end
+
+    % Rescale variables if requested
+    if strcmp(options.RescaleVars,'on')
+        octstruct = optimct(nvars,LB,UB,RLB,RUB);
+        LB = octstruct.lb(:)';
+        UB = octstruct.ub(:)';
+        RLB = octstruct.plb(:)';
+        RUB = octstruct.pub(:)';
+        XScale = 2*octstruct.gamma(:)'.*(options.XScale./diff(options.InitRange,[],1));
+        options.InitRange = [octstruct.plb(:)'; octstruct.pub(:)'];
+        if ~isempty(x0)
+            for i = 1:size(x0,1); x0(i,:) = optimct(x0(i,:),octstruct); end
+        end
+    else
+        octstruct = [];
+    end
+    
+    iEpoch0 = 1;
+    iStart0 = 0;
 end
+
+lastsave = tic;    % Keep track of time
 
 % Loop over optimization epochs
-for iEpoch = 1:maxEpochs
-    % Initial points
-    if isempty(x0) && strcmpi(MidpointStart,'on') % Reasonable starting point
-        x0(1,:) = 0.5*(RLB+RUB);
-    end
+for iEpoch = iEpoch0:maxEpochs
     
-    if size(x0,1) < nStarts(iEpoch)
-        index = size(x0,1)+1:nStarts(iEpoch);
-        % x0(index,:) = bsxfun(@plus,bsxfun(@times,rand(length(index),nvars),RUB-RLB),RLB);
-        temp = cache.x(~isnan(cache.fval),:);
-        X = [output.x;output.startx;temp;x0(1:size(x0,1),:)];  
-        x0(index,:) = randx(length(index),RLB,RUB,XScale/2,X);
-    end
-    x0 = x0(1:nStarts(iEpoch),:);
+    if iStart0 == 0
+        % Initial points
+        if isempty(x0) && strcmpi(options.MidpointStart,'on') % Reasonable starting point
+            x0(1,:) = 0.5*(RLB+RUB);
+        end
 
-    maxeval = MaxFunEvals(min(iEpoch,end));
-    maxiter = MaxIter(min(iEpoch,end));
-    tolfun = TolFun(min(iEpoch,end));
-    tolx = TolX(min(iEpoch,end));
-    disp = Display{min(iEpoch,end)};
-    method = Method{min(iEpoch,end)};
-    
-    if ~isempty(OutputFcn)
-        optimValues.funccount = 0;
-        optimValues.x = NaN(1,nvars);
-        optimValues.fval = fvalmin;
-        optimValues.epoch = iEpoch;
-        optimValues.iteration = 0;
-        optimValues.procedure = method;
-        stop = OutputFcn(x0,optimValues,'iter');
+        if size(x0,1) < nStarts(iEpoch)
+            index = size(x0,1)+1:nStarts(iEpoch);
+            % x0(index,:) = bsxfun(@plus,bsxfun(@times,rand(length(index),nvars),RUB-RLB),RLB);
+            temp = cache.x(~isnan(cache.fval),:);
+            X = [output.x;output.startx;temp;x0(1:size(x0,1),:)];  
+            x0(index,:) = randx(length(index),RLB,RUB,options.XScale/2,X);
+        end
+        x0 = x0(1:nStarts(iEpoch),:);
+
+        maxeval = options.MaxFunEvals(min(iEpoch,end));
+        maxiter = options.MaxIter(min(iEpoch,end));
+        tolfun = options.TolFun(min(iEpoch,end));
+        tolx = options.TolX(min(iEpoch,end));
+        disp = options.Display{min(iEpoch,end)};
+        method = options.Method{min(iEpoch,end)};
+
+        if ~isempty(options.OutputFcn)
+            optimValues.funccount = 0;
+            optimValues.x = NaN(1,nvars);
+            optimValues.fval = fvalmin;
+            optimValues.epoch = iEpoch;
+            optimValues.iteration = 0;
+            optimValues.procedure = method;
+            stop = options.OutputFcn(x0,optimValues,'iter');
+        end
+        
+        iStart0 = 1;
     end
         
-    for iStart = 1:nStarts(iEpoch)
+    % Inner optimization loop
+    for iStart = iStart0:nStarts(iEpoch)
+                        
+        % Save current progress to file
+        if ~isempty(options.SaveFile) && toc(lastsave) > options.SaveTime
+            % if trace > 1;
+                fprintf('Saving temp file ''%s''...\n', options.SaveFile); 
+            % end
+            save(options.SaveFile);
+            lastsave = tic;
+        end
+        
+        display(iStart);
+        
         xstart = x0(iStart,:);
         
-        if ~isempty(OutputFcn)
+        if ~isempty(options.OutputFcn)
             optimValues.funccount = 0;
             optimValues.x = optimct(x,octstruct,1);
             optimValues.fval = fvalmin;
             optimValues.epoch = iEpoch;
             optimValues.iteration = iStart;
             optimValues.procedure = method;
-            stop = OutputFcn(optimct(xstart,octstruct,1),optimValues,'iter');
+            stop = options.OutputFcn(optimct(xstart,octstruct,1),optimValues,'iter');
         end        
 
         if cache.index
@@ -274,27 +329,27 @@ for iEpoch = 1:maxEpochs
                 funcCount = 1;
             case 'fminsearch'
                 optoptions = optimset('Display',disp,'TolX',tolx,'TolFun',tolfun,'MaxFunEvals',maxeval,'MaxIter',maxiter);
-                optoptions = optimset(optoptions,OptimOptions{min(iEpoch,end)});
+                optoptions = optimset(optoptions,options.OptimOptions{min(iEpoch,end)});
                 [x,fval,exitflag,output1] = fminsearchbnd(funfcn,xstart,LB,UB,optoptions);
                 funcCount = output1.funcCount;
             case 'fmincon'
                 assert(exist('patternsearch.m','file') == 2, ...
                     'FMINCON optimization method not installed (requires Optimization Toolbox).');
                 optoptions = optimset('Display',disp,'TolX',tolx,'TolFun',tolfun,'MaxFunEvals',maxeval,'MaxIter',maxiter);
-                optoptions = optimset(optoptions,OptimOptions{min(iEpoch,end)});
+                optoptions = optimset(optoptions,options.OptimOptions{min(iEpoch,end)});
                 [x,fval,exitflag,output1] = fmincon(funfcn,xstart,[],[],[],[],LB,UB,[],optoptions);
                 funcCount = output1.funcCount;
             case 'patternsearch'
                 assert(exist('patternsearch.m','file') == 2, ...
                     'PATTERNSEARCH optimization method not installed (requires Global Optimization Toolbox).');
                 optoptions = psoptimset('Display',disp,'TolX',tolx,'TolFun',tolfun,'MaxFunEvals',maxeval,'MaxIter',maxiter);
-                optoptions = psoptimset(optoptions,OptimOptions{min(iEpoch,end)});
+                optoptions = psoptimset(optoptions,options.OptimOptions{min(iEpoch,end)});
                 [x,fval,exitflag,output1] = patternsearch(funfcn,xstart,[],[],[],[],LB,UB,[],optoptions);
                 funcCount = output1.funccount;
             case 'bps'
                 assert(exist('bps.m','file') == 2, ...
                     'BPS optimization method not installed.');
-                optoptions = OptimOptions{min(iEpoch,end)};
+                optoptions = options.OptimOptions{min(iEpoch,end)};
                 optoptions.Display = disp;
                 optoptions.TolX = tolx;
                 optoptions.TolFun = tolfun;
@@ -310,14 +365,14 @@ for iEpoch = 1:maxEpochs
         output = storeOptimization(output,...
             xstart,x,fval,funcCount,exitflag,output1);
         
-        if ~isempty(OutputFcn)
+        if ~isempty(options.OutputFcn)
             optimValues.funccount = funcCount;
             optimValues.x = optimct(x,octstruct,1);
             optimValues.fval = fval;
             optimValues.epoch = iEpoch;
             optimValues.iteration = iStart;
             optimValues.procedure = method;
-            stop = OutputFcn(optimct(xstart,octstruct,1),optimValues,'iter');
+            stop = options.OutputFcn(optimct(xstart,octstruct,1),optimValues,'iter');
         end
                 
         if fval < fvalmin
@@ -330,9 +385,9 @@ for iEpoch = 1:maxEpochs
     % Recompute x0 for next iteration
     if iEpoch < maxEpochs && size(output.x,1) > 1
         % Build optimization matrix combining optimal points and log likelihood
-        xScale = XScale(:)'/10*sqrt(nvars);
+        xScale = options.XScale(:)'/10*sqrt(nvars);
         fval = output.fval(:);
-        xx = [bsxfun(@rdivide,output.x,xScale), fval/FvalScale];
+        xx = [bsxfun(@rdivide,output.x,xScale), fval/options.FvalScale];
         
         % Cluster points close in x-Fval space, keep only minima
         listindex = 1:size(fval,1);        
@@ -355,6 +410,8 @@ for iEpoch = 1:maxEpochs
     else
         x0 = output.x;        
     end
+    
+    iStart0 = 0;
 
 end
 
@@ -362,18 +419,18 @@ x = optimct(xmin,octstruct,1);
 fval = fvalmin;
 exitflag = 0;
 
-if ~isempty(OutputFcn)
+if ~isempty(options.OutputFcn)
     optimValues.funccount = funcCount;
     optimValues.x = optimct(x,octstruct,1);
     optimValues.fval = fval;
     optimValues.epoch = iEpoch;
     optimValues.iteration = iStart;
     optimValues.procedure = [];
-    stop = OutputFcn(optimValues.x,optimValues,'done');
+    stop = options.OutputFcn(optimValues.x,optimValues,'done');
 end
 
 % Convert function outputs to original coordinate system
-if strcmp(RescaleVars,'on')
+if strcmp(options.RescaleVars,'on')
     if nargout > 3
         for i = 1:size(output.x,1)
             output.x(i,:) = optimct(output.x(i,:),octstruct,1);
@@ -384,8 +441,8 @@ if strcmp(RescaleVars,'on')
     end
 
     if nargout > 4
-        for i = 1:size(Cache.x,1)
-            Cache.x(i,:) = optimct(Cache.x(i,:),octstruct,1);
+        for i = 1:size(options.Cache.x,1)
+            options.Cache.x(i,:) = optimct(options.Cache.x(i,:),octstruct,1);
         end
     end
 end
@@ -393,7 +450,7 @@ end
     %OBJECTIVEFUNC Objective function with caching
     function fval = objectivefunc(x)
                 
-        if strcmp(RescaleVars,'on'); x = optimct(x,octstruct,1); end
+        if strcmp(options.RescaleVars,'on'); x = optimct(x,octstruct,1); end
         
         if isempty(vararginarray)
             fval = fun(x);
@@ -403,7 +460,7 @@ end
         
         cache.x(cache.index,:) = x;
         cache.fval(cache.index) = fval;
-        cache.index = max(mod(cache.index + 1,CacheSize+1), 1);
+        cache.index = max(mod(cache.index + 1,options.CacheSize+1), 1);
     end
 
 end
@@ -449,3 +506,140 @@ if flag
 end
 
 end
+
+%--------------------------------------------------------------------------
+function varargout = optimct(varargin)
+%OPTIMCT Coordinate transform for guided optimization.
+
+NumEps = 1e-10; % Accepted numerical error
+
+% MaxPrecision = 17; % Maximum precision for a double
+
+if nargin >= 5
+
+    nvars = varargin{1};
+    lb = varargin{2}(:);
+    ub = varargin{3}(:);
+    plb = varargin{4}(:);
+    pub = varargin{5}(:);
+    if nargin < 6; octstruct.logct = []; else octstruct.logct = varargin{6}(:); end
+
+    % Convert scalar inputs to column vectors
+    if isscalar(lb); lb = lb*ones(nvars,1); end
+    if isscalar(ub); ub = ub*ones(nvars,1); end
+    if isscalar(plb); plb = plb*ones(nvars,1); end
+    if isscalar(pub); pub = pub*ones(nvars,1); end
+
+    assert(~any(isinf(([plb; pub]))), ...
+        'Plausible interval ranges PLB and PUB need to be finite.');
+
+    plb = max(plb,lb);
+    pub = min(pub,ub);
+    
+    if isempty(octstruct.logct)
+        % A variable is converted to log scale if all bounds are positive and 
+        % the plausible range spans at least one order of magnitude
+        octstruct.logct = all([lb, ub, plb, pub] > 0, 2) & (pub./plb >= 10);    
+    elseif isscalar(octstruct.logct)
+        octstruct.logct = ones(nvars,1);
+    end
+    
+    % Transform to log coordinates
+    octstruct.oldbounds.lb = lb;
+    octstruct.oldbounds.ub = ub;
+    octstruct.oldbounds.plb = plb;
+    octstruct.oldbounds.pub = pub;    
+    octstruct.lb = lb; octstruct.ub = ub; octstruct.plb = plb; octstruct.pub = pub;
+    octstruct.lb(octstruct.logct) = log(octstruct.lb(octstruct.logct));
+    octstruct.ub(octstruct.logct) = log(octstruct.ub(octstruct.logct));
+    octstruct.plb(octstruct.logct) = log(octstruct.plb(octstruct.logct));
+    octstruct.pub(octstruct.logct) = log(octstruct.pub(octstruct.logct));
+
+    octstruct.mu = 0.5*(octstruct.plb + octstruct.pub);
+    octstruct.gamma = 0.5*(octstruct.pub - octstruct.plb);
+        
+    z = ['( (x - ' vec2str(octstruct.mu) ') ./ ' vec2str(octstruct.gamma) ' )'];
+    zlog = ['( (log(abs(x) + (x == 0)) - ' vec2str(octstruct.mu) ') ./ ' vec2str(octstruct.gamma) ' )'];
+    
+    switch sum(octstruct.logct)
+        case 0
+            octstruct.g = ['@(x) linlog(' z ')'];
+            octstruct.ginv = ['@(y) ' vec2str(octstruct.gamma) ' .* linexp(y) + ' vec2str(octstruct.mu) ];        
+            
+        case nvars
+            octstruct.g = ['@(x) linlog(' zlog ')'];
+            octstruct.ginv = ['@(y) exp(' vec2str(octstruct.gamma) ' .* linexp(y) + ' vec2str(octstruct.mu) ')'];        
+            
+        otherwise
+            octstruct.g = ['@(x) (1-' vec2str(octstruct.logct) ').*linlog(' z ')' ... 
+                '+ ' vec2str(octstruct.logct) '.*linlog(' zlog ')'];
+            octstruct.ginv = ['@(y) (1-' vec2str(octstruct.logct) ') .* (' vec2str(octstruct.gamma) ' .* linexp(y) + ' vec2str(octstruct.mu) ') + ' ...
+                vec2str(octstruct.logct) ' .* exp(' vec2str(octstruct.gamma) ' .* linexp(y) + ' vec2str(octstruct.mu) ')'];        
+    end
+    
+    % Convert starting values to transformed coordinates
+    octstruct.g = str2func(octstruct.g);
+    octstruct.ginv = str2func(octstruct.ginv);
+    
+    if ischar(octstruct.g); g = str2func(octstruct.g); else g = octstruct.g; end
+    if ischar(octstruct.ginv); ginv = str2func(octstruct.ginv); else ginv = octstruct.ginv; end
+    
+    % Check that the transform works correctly in the range
+    t(1) = all(abs(ginv(g(lb)) - lb) < NumEps);
+    t(2) = all(abs(ginv(g(ub)) - ub) < NumEps);
+    t(3) = all(abs(ginv(g(plb)) - plb) < NumEps);
+    t(4) = all(abs(ginv(g(pub)) - pub) < NumEps);    
+    assert(all(t), 'Cannot invert the transform to obtain the identity at the provided boundaries.');
+    
+    octstruct.lb = g(lb);
+    octstruct.ub = g(ub);
+    octstruct.plb = g(plb);
+    octstruct.pub = g(pub);
+    
+    varargout{1} = octstruct;
+
+elseif nargin >= 2
+    
+    octstruct = varargin{2};    
+
+    if isempty(octstruct)
+        varargout{1} = varargin{1}; % Return untransformed input
+    else
+        if (nargin < 3); direction = 'd'; else direction = varargin{3}(1); end
+        
+        if direction == 'd' || direction == 'D'
+            x = varargin{1};
+            if ischar(octstruct.g); g = str2func(octstruct.g); else g = octstruct.g; end
+            y = g(x(:));
+            y = min(max(y,octstruct.lb),octstruct.ub);    % Force to stay within bounds
+
+            varargout{1} = reshape(y,size(x));
+        else
+            y = varargin{1};
+            if ischar(octstruct.ginv); ginv = str2func(octstruct.ginv); else ginv = octstruct.ginv; end
+            x = ginv(y(:));
+            x = min(max(x,octstruct.oldbounds.lb),octstruct.oldbounds.ub);    % Force to stay within bounds
+            varargout{1} = reshape(x,size(y));
+        end
+    end
+    
+end
+
+end
+
+%--------------------------------------------------------------------------
+function s = vec2str(v)
+% Convert numerical vector to string
+
+MaxPrecision = 17;  % Maximum precision for a double
+if size(v,1) > 1; transp = ''''; else transp = []; end
+s = '[';
+for i = 1:length(v)-1; s = [s, num2str(v(i),MaxPrecision), ',']; end
+s = [s, num2str(v(end),MaxPrecision), ']' transp];
+
+% s = ['[' num2str(v(:)',MaxPrecision) ']' transp];
+
+end
+
+
+
