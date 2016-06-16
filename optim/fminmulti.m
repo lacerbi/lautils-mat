@@ -296,7 +296,7 @@ for iEpoch = iEpoch0:maxEpochs
             lastsave = tic;
         end
         
-        display(iStart);
+        if iEpoch > 1; display([iEpoch,iStart]); end
         
         xstart = x0(iStart,:);
         
@@ -372,7 +372,7 @@ for iEpoch = iEpoch0:maxEpochs
             optimValues.epoch = iEpoch;
             optimValues.iteration = iStart;
             optimValues.procedure = method;
-            stop = options.OutputFcn(optimct(xstart,octstruct,1),optimValues,'iter');
+            stop = options.OutputFcn(optimct(x,octstruct,1),optimValues,'iter');
         end
                 
         if fval < fvalmin
