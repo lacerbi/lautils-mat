@@ -178,7 +178,7 @@ if ~isempty(options.LoadFile) && exist(options.LoadFile,'file')
     iEpoch0 = iEpoch;
     iStart0 = iStart;
     % if trace > 1; 
-        fprintf('Loading sampling from file ''%s''.\n', options.LoadFile); 
+        fprintf('Loading ongoing optimization from file ''%s''.\n', options.LoadFile); 
     % end
 
     % Copy some new OPTIONS to the old options structure
