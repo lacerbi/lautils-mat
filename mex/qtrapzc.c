@@ -42,7 +42,7 @@ void qtrapzc(double *x, int dim, double *z, mwSize n1, mwSize n2, mwSize n3, dou
         }
     }
     
-    printf("%d %d\n",(int)idx[0],(int)idx[1]);
+    /* printf("%d %d\n",(int)idx[0],(int)idx[1]); */
     
 }
 
