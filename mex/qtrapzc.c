@@ -53,7 +53,6 @@ void mexFunction( int nlhs, mxArray *plhs[],
   const mwSize *dims, *dimsidx;
   double *x,*z,*idx;
   int d;
-  //int *idx;
   size_t n1,n2,n3;
   
   /*  check for proper number of arguments */
