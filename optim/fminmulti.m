@@ -135,12 +135,15 @@ defopts.Display = 'off';                % Display level
 defopts.OutputFcn = [];                 % Output function
 defopts.InitRange = [LB; UB];           % Initial range
 defopts.x0 = [];                        % Starting minimization
+defopts.SobolInit = 'on';               % Initialize with Sobol grid
+defopts.SobolSeed = [];                 % Chosen seed for Sobol grid
 defopts.MidpointStart = 'on';           % Include midpoint
 defopts.XScale = [];                    % Characteristic length scale in X
 defopts.FvalScale = 1;                  % Characteristic function amplitude
 defopts.RescaleVars = 'off';            % Rescale variables
 defopts.Cache = 'on';                   % Cache intermediate fcn evaluations
 defopts.CacheSize = 1e5;                % Cache size
+defopts.BPSUseCacheEpochs = 2;          % Use cached fcn evals for BPS
 defopts.LoadFile    = '';               % Load interrupted sampling from file
 defopts.SaveFile    = '';               % Save sampling to file
 defopts.SaveTime    = 1e4;              % Save every this number of seconds
@@ -166,8 +169,6 @@ end
 for f = {'MidpointStart','RescaleVars','Cache'}
     options.(f{:}) = onoff(options.(f{:}));
 end
-
-x0 = options.x0;
 
 if ~isempty(options.LoadFile) && exist(options.LoadFile,'file')
     %% Load interrupted execution from file
@@ -197,7 +198,17 @@ else
 
     % Characteristic length scale from reasonable range
     if isempty(options.XScale); options.XScale = (RUB - RLB)/sqrt(12); end
-
+    
+    x0 = options.x0;
+    
+    % Sobol initialization
+    if isempty(x0) && strcmpi(options.SobolInit,'on')
+        seed = options.SobolSeed;
+        if isempty(seed); seed = randi(1e4); end
+        r = i4_sobol_generate(nvars,nStarts(1),seed)';
+        x0 = bsxfun(@plus, RLB, bsxfun(@times, r, RUB-RLB));
+    end
+    
     maxEpochs = length(nStarts);
     output.x = []; output.startx = []; output.nruns = 0;
     x = NaN(1,nvars);
@@ -283,6 +294,8 @@ for iEpoch = iEpoch0:maxEpochs
         
         iStart0 = 1;
     end
+    
+    bpscache = [];
         
     % Inner optimization loop
     for iStart = iStart0:nStarts(iEpoch)
@@ -355,6 +368,14 @@ for iEpoch = iEpoch0:maxEpochs
                 optoptions.TolFun = tolfun;
                 optoptions.MaxFunEvals = maxeval;
                 optoptions.MaxIter = maxiter;
+                % Feed cached function values to BPS
+                if any(options.BPSUseCacheEpochs == iEpoch) && isempty(bpscache)
+                    bpscache.X = cache.x(1:cache.index,:);
+                    bpscache.Y = cache.fval(1:cache.index,:);
+                end
+                if any(options.BPSUseCacheEpochs == iEpoch)
+                    optoptions.FunValues = bpscache;
+                end
                 PLB = options.InitRange(1,:);
                 PUB = options.InitRange(2,:);
                 [x,fval,exitflag,output1] = bps(funfcn,xstart,LB,UB,PLB,PUB,optoptions);
