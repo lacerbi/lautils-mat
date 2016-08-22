@@ -134,7 +134,7 @@ defopts.OptimOptions = [];              % Local optimizer options
 defopts.Display = 'off';                % Display level
 defopts.OutputFcn = [];                 % Output function
 defopts.InitRange = [LB; UB];           % Initial range
-defopts.x0 = [];                        % Starting minimization
+defopts.InitialPoints = [];             % Starting minimization
 defopts.SobolInit = 'on';               % Initialize with Sobol grid
 defopts.SobolSeed = [];                 % Chosen seed for Sobol grid
 defopts.MidpointStart = 'on';           % Include midpoint
@@ -199,14 +199,14 @@ else
     % Characteristic length scale from reasonable range
     if isempty(options.XScale); options.XScale = (RUB - RLB)/sqrt(12); end
     
-    x0 = options.x0;
+    x0 = options.InitialPoints;
     
     % Sobol initialization
-    if isempty(x0) && strcmpi(options.SobolInit,'on')
+    if size(x0,1) < nStarts(1) && strcmpi(options.SobolInit,'on')
         seed = options.SobolSeed;
         if isempty(seed); seed = randi(1e4); end
-        r = i4_sobol_generate(nvars,nStarts(1),seed)';
-        x0 = bsxfun(@plus, RLB, bsxfun(@times, r, RUB-RLB));
+        r = i4_sobol_generate(nvars,nStarts(1)-size(x0,1),seed)';
+        x0 = [x0; bsxfun(@plus, RLB, bsxfun(@times, r, RUB-RLB))];
     end
     
     maxEpochs = length(nStarts);
