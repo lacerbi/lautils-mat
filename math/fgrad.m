@@ -42,6 +42,7 @@ if nargin < 3 || isempty(method); method = 'forward'; end
 
 % Default options
 Vectorized = false;
+Transpose = false;
 h = sqrt(eps)*(abs(x0)+sqrt(eps));
 
 % Parse additional options
@@ -50,9 +51,17 @@ while idx <= numel(varargin)
     switch lower(varargin{idx})
         case 'step'; h = varargin{idx+1}; idx = idx + 2;
         case 'vectorized'; Vectorized = true; idx = idx + 1;
+        case 'transpose'; Transpose = true; x0 = x0'; idx = idx + 1;
         otherwise
             error('Unknown options %s.', varargin{idx});
     end
+end
+
+if ~Transpose && size(x0,1) > 1
+    for i = 1:size(x0,1)
+        dy(i,:) = fgrad(fun,x0(i,:),method,varargin{:});
+    end
+    return;
 end
 
 D = size(x0,2);
@@ -84,11 +93,19 @@ ni = size(xi,1);
 % Evaluate function at each point in the evaluation list
 if Vectorized || ni == 1
     yi = fun(xi);        
-else    
-    yi = fun(xi(1,:));
+else
+    if Transpose
+        yi = fun(xi(1,:)');        
+    else
+        yi = fun(xi(1,:));
+    end
     nout = size(yi,2);
     yi = [yi; zeros(ni-1,nout)];
-    for i = 2:ni; yi(i,:) = fun(xi(i,:)); end        
+    if Transpose
+        for i = 2:ni; yi(i,:) = fun(xi(i,:)'); end        
+    else
+        for i = 2:ni; yi(i,:) = fun(xi(i,:)); end
+    end
 end
 
 if EvaluateFx0; y0 = yi(end,:); end
