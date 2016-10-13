@@ -1,9 +1,9 @@
 function h=plotify(varargin)
-%PLOTIFY Create axes for subplots.
+%PLOTIFY Create axes for subplots. (work in progress)
 %   CANVAS = PLOTIFY(M,N) creates subplot axes on a M by N grid and returns 
 %   a CANVAS struct.
 %
-% TIGHT_SUBPLOT(M, N, ROW, COL, GUTTER=.002) indicates the width of the spacing
+% PLOTIFY(M, N, ROW, COL, GUTTER=.002) indicates the width of the spacing
 % between subplots, in terms of proportion of the figure size. If GUTTER is
 % a 2-length vector, the first number specifies the width of the spacing
 % between columns, and the second number specifies the width of the spacing
@@ -11,15 +11,16 @@ function h=plotify(varargin)
 % instance, GUTTER = .05 will make each gutter equal to 5% of the figure
 % width or height.
 %
-% TIGHT_SUBPLOT(M, N, ROW, COL, GUTTER=.002, MARGINS=[.06 .01 .04 .04]) indicates the margin on
+% PLOTIFY(M, N, ROW, COL, GUTTER=.002, MARGINS=[.06 .01 .04 .04]) indicates the margin on
 % all four sides of the subplots. MARGINS = [LEFT RIGHT BOTTOM TOP]. This
 % allows room for titles, labels, etc.
-%
-% Will Adler 2015
-% will@wtadler.com
 % 
 % Right now, this lacks the ability to do subplots that span row/column ranges.
 % Inspired by subplot_tight by Nikolay S. (http://vision.technion.ac.il/~kolian1/).
+
+% Author:   Luigi Acerbi
+% Email:    luigi.acerbi@gmail.com
+% Date:     09/15/2016
 
 % Return help
 if nargin == 0 && nargout == 0
@@ -196,7 +197,7 @@ axes(h0);
 
 % Figure title
 if ~isempty(titlestr)
-    text(0.5,1-Tmargin/2,titlestr);
+    text(0.5,1-Tmargin/2,titlestr,'HorizontalAlignment','center');
 end
 
 drawnow;
