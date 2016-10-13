@@ -22,6 +22,13 @@ Numerical and math-related functions.
 - (+) `qcumtrapz.m`: Quick cumulative trapezoidal numerical integration
 - (++) `qtrapz.m`: Quick trapezoidal numerical integration (3-4 times faster than `trapz.m` on large arrays)
 
+### Markov Chain Monte Carlo sampling (`./mcmc`)
+
+MCMC samplers and related files.
+
+- `maxsample.m`: Stochastic exploration of high-valued regions of a function (untested)
+- `mhsamplecon.m`: Metropolis-Hastings with reflective constraints (untested)
+
 ### Optimization (`./optim`)
 
 Optimization algorithms and related functions.
@@ -50,7 +57,7 @@ A bunch of functions for [PsychToolbox](http://psychtoolbox.org/) that I wrote d
 
 ### Statistics (`./stats`)
 
-Probability distributions, MCMC samplers and other statistics-related functions.
+Probability distributions and other statistics-related functions.
 
 - `binbuild.m`: Build binned data
 - `binolike.m`: Negative log-likelihood for the binomial distribution
@@ -58,8 +65,6 @@ Probability distributions, MCMC samplers and other statistics-related functions.
 - (+) `fisher2kappa.m`: Fisher information to Von Mises concentration parameter
 - `gaussks1.m`: 1-D Gaussian kernel smooth function approximation
 - `gpinterp1.m`: 1-D interpolation using Gaussian process (requires [GPML toolbox](http://www.gaussianprocess.org/gpml/code/matlab/doc/))
-- `maxsample.m`: Stochastic exploration of high-valued regions of a function (untested)
-- `mhsamplecon.m`: Metropolis-Hastings with reflective constraints (untested)
 - `moments.m`: Central moments of discrete distribution
 - (++) `qrandvm.m`: Quick Von Mises distributed pseudorandom numbers (faster than `circ_vmrnd.m` from the [Circular Statistics Toolbox](http://bethgelab.org/software/circstat/))
 - `randntrim.m`: Normally distributed trimmed pseudorandom numbers (dumb rejection method)
