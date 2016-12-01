@@ -1,22 +1,11 @@
 function h=plotify(varargin)
-%PLOTIFY Create axes for subplots. (work in progress)
-%   CANVAS = PLOTIFY(M,N) creates subplot axes on a M by N grid and returns 
-%   a CANVAS struct.
+%PLOTIFY Create axes for subplots. 
 %
-% PLOTIFY(M, N, ROW, COL, GUTTER=.002) indicates the width of the spacing
-% between subplots, in terms of proportion of the figure size. If GUTTER is
-% a 2-length vector, the first number specifies the width of the spacing
-% between columns, and the second number specifies the width of the spacing
-% between rows. If GUTTER is a scalar, it specifies both widths. For
-% instance, GUTTER = .05 will make each gutter equal to 5% of the figure
-% width or height.
+%  For a more recent version, look
 %
-% PLOTIFY(M, N, ROW, COL, GUTTER=.002, MARGINS=[.06 .01 .04 .04]) indicates the margin on
-% all four sides of the subplots. MARGINS = [LEFT RIGHT BOTTOM TOP]. This
-% allows room for titles, labels, etc.
-% 
-% Right now, this lacks the ability to do subplots that span row/column ranges.
-% Inspired by subplot_tight by Nikolay S. (http://vision.technion.ac.il/~kolian1/).
+% Inspired by:
+% - subplot_tight by Nikolay S. (http://vision.technion.ac.il/~kolian1/).
+% - tight_plot by William T. Adler
 
 % Author:   Luigi Acerbi
 % Email:    luigi.acerbi@gmail.com
@@ -36,6 +25,7 @@ options.title = [];
 options.labels = [];
 options.square = [];
 options.position = [];
+options.fontsize = [];
 
 if isstruct(varargin{1})
     
@@ -58,7 +48,7 @@ ng = max(subgrid(:));
 
 % Parse inputs
 if numel(varargin) >= argidx0
-    varargin(argidx0:end)
+    % varargin(argidx0:end)
     options = parseoptions(options,varargin{argidx0:end});
 end
 
@@ -69,6 +59,7 @@ titlestr = options.title;
 labels = options.labels;
 square = options.square;
 position = options.position;
+fontsize = options.fontsize;
 
 if isempty(gutter)  % Total gutter space
     gutter = [.05, .05]; %horizontal, vertical
@@ -101,6 +92,10 @@ if isempty(square)
     square = false(1,ng);
 else
     square = logical([square(:)',zeros(1,ng-numel(square))]);
+end
+
+if isempty(fontsize)
+    fontsize = 14;
 end
 
 if ~isnumeric(subgrid) || any(subgrid(:) < 0)
@@ -232,7 +227,7 @@ for g = 1:ng
     
     if ~isempty(labels) && g <= numel(labels) && ~isempty(labels{g})
         text(left-gutter(1)*0.75,bottom+height,labels{g}, ...
-            'HorizontalAlignment','center','FontWeight','bold','FontSize',14);
+            'HorizontalAlignment','center','FontWeight','bold','FontSize',fontsize);
     end
 end
 
