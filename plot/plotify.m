@@ -26,6 +26,7 @@ options.labels = [];
 options.square = [];
 options.position = [];
 options.fontsize = [];
+options.fontname = [];
 
 if isstruct(varargin{1})
     
@@ -60,6 +61,7 @@ labels = options.labels;
 square = options.square;
 position = options.position;
 fontsize = options.fontsize;
+fontname = options.fontname;
 
 if isempty(gutter)  % Total gutter space
     gutter = [.05, .05]; %horizontal, vertical
@@ -97,6 +99,17 @@ end
 if isempty(fontsize)
     fontsize = 14;
 end
+
+if isempty(fontname)
+    fontname = 'Arial';
+end
+
+% Set default font name
+set(0,'defaultUicontrolFontName',fontname);
+set(0,'defaultUitableFontName',fontname);
+set(0,'defaultAxesFontName',fontname);
+set(0,'defaultTextFontName',fontname);
+set(0,'defaultUipanelFontName',fontname);
 
 if ~isnumeric(subgrid) || any(subgrid(:) < 0)
     error('plotify:SubGridWrong','The SUBGRID matrix must contain nonnegative integers.');
@@ -192,38 +205,23 @@ axes(h0);
 
 % Figure title
 if ~isempty(titlestr)
-    text(0.5,1-Tmargin/2,titlestr,'HorizontalAlignment','center');
+    text(0.5,1-Tmargin/2,titlestr,'HorizontalAlignment','center','FontSize',fontsize,'FontWeight','bold');
 end
 
 drawnow;
 pause(0.05);
 
+% Set tick length to the same size
+equalticklength(h,ticklength);
+
 for g = 1:ng
+    
+    set(h(g),'TickDir','out');
+    
     rect = get(h(g),'Position');
     height = rect(4);
-    width = rect(3);
     bottom = rect(2);
-    left = rect(1);
-    
-    %if square(g)
-    %    axislen = min([height,width]);        
-    %    ticklen = ticklength./axislen^2;        
-    %    axislen = height;
-    %else
-    
-    hfig = get(h(g),'Parent');
-    rectfig = get(hfig, 'Position');
-    width_px = rect(3) * rectfig(3);
-    height_px = rect(4) * rectfig(4);
-        
-    %set(0,'units','pixels');
-    %set(h(g),'Units','normalized');
-            
-        axislen = max([height_px,width_px]);
-        ticklen = ticklength/axislen*max(rectfig(3:4));
-    %end
-    
-    set(h(g),'TickDir','out','TickLength',ticklen*[1 2.5]);
+    left = rect(1);    
     
     if ~isempty(labels) && g <= numel(labels) && ~isempty(labels{g})
         text(left-gutter(1)*0.75,bottom+height,labels{g}, ...

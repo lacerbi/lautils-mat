@@ -32,8 +32,8 @@ logpxa = bsxfun(@plus, gammaln(Nj+1), ...
     + sum(bsxfun(@minus, gammaln(bsxfun(@plus, x, a_vec)), gammaln(x+1)),2)));
 
 % Log unnormalized posterior
-%logupost = bsxfun(@plus, logpxa, log(upriora_vec));
-logupost = bsxfun(@plus, sum(logpxa,1), log(upriora_vec));
+logupost = bsxfun(@plus, logpxa, log(upriora_vec));
+%logupost = bsxfun(@plus, sum(logpxa,1), log(upriora_vec));
 
 % Normalize posterior
 logupost = bsxfun(@minus, logupost, max(logupost,[],3));

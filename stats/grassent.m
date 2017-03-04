@@ -1,4 +1,4 @@
-function [H,G] = grassent(x,flag)
+function H = grassent(x)
 %GRASSENT Grassberger estimator of entropy for discrete distributions.
 %   H = grassent(X) returns the estimated entropy of a discrete array of 
 %   counts X. If X is a matrix, GRASSENT computes the entropy for each row.
@@ -15,23 +15,17 @@ function [H,G] = grassent(x,flag)
 %   values actually used.
 %
 %   Reference:
-%   Grassberger, P. (2003). Entropy estimates from insufficient samplings. 
+%   Grassberger, P. (2003). Entropy estimates from insufficient samplings.
 %   arXiv preprint physics/0307138.
 
 %   Author: Luigi Acerbi
 %   Date: 15/Dec/2016
 
-if nargin < 2 || isempty(flag); flag = 0; end
-
 if ~ismatrix(x); error('X should be an array or two-dimensional matrix.'); end
 if size(x,2)==1; x=x'; end      % Single array
 
 n = sum(x,2);
-if flag 
-    h = unique(x(:));   % List of counts    
-else
-    h = unique([x(:); n(:)]);   % List of counts, including the G(N_k)
-end
+h = unique([x(:); n(:)]);   % List of counts, including the G(N_k)
 
 % Grassberger numbers shifted by one to include G(0)
 G = NaN(1,1+max(h));
@@ -40,11 +34,7 @@ G(1) = 0;
 
 % Entropy estimate
 base = zeros(size(n));
-if flag
-    base(:) = log(n);
-else
-    base(:) = G(n+1);
-end
+base(:) = G(n+1);
 H = base - sum(x.*G(x+1),2) ./ n;
 
 if nargout > 1
