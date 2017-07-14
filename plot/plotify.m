@@ -1,8 +1,6 @@
 function h=plotify(varargin)
 %PLOTIFY Create axes for subplots. 
 %
-%  For a more recent version, look
-%
 % Inspired by:
 % - subplot_tight by Nikolay S. (http://vision.technion.ac.il/~kolian1/).
 % - tight_plot by William T. Adler

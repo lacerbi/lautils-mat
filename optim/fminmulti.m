@@ -360,26 +360,51 @@ for iEpoch = iEpoch0:maxEpochs
                 [x,fval,exitflag,output1] = patternsearch(funfcn,xstart,[],[],[],[],LB,UB,[],optoptions);
                 funcCount = output1.funccount;
             case 'bps'
-                assert(exist('bps.m','file') == 2, ...
-                    'BPS optimization method not installed.');
+                error('BPS is obsolete, use BADS instead.');
+%                 assert(exist('bps.m','file') == 2, ...
+%                     'BPS optimization method not installed.');
+%                 optoptions = options.OptimOptions{min(iEpoch,end)};
+%                 optoptions.Display = disp;
+%                 optoptions.TolX = tolx;
+%                 optoptions.TolFun = tolfun;
+%                 optoptions.MaxFunEvals = maxeval;
+%                 optoptions.MaxIter = maxiter;
+%                 % Feed cached function values to BPS
+%                 if any(options.BPSUseCacheEpochs == iEpoch) && isempty(bpscache)
+%                     bpscache.X = cache.x(1:cache.index,:);
+%                     bpscache.Y = cache.fval(1:cache.index,:);
+%                 end
+%                 if any(options.BPSUseCacheEpochs == iEpoch)
+%                     optoptions.FunValues = bpscache;
+%                 end
+%                 PLB = options.InitRange(1,:);
+%                 PUB = options.InitRange(2,:);
+%                 [x,fval,exitflag,output1] = bps(funfcn,xstart,LB,UB,PLB,PUB,optoptions);
+%                 funcCount = output1.FuncCount;
+            case 'bads'
+                assert(exist('bads.m','file') == 2, ...
+                    'BADS optimization method not installed.');
                 optoptions = options.OptimOptions{min(iEpoch,end)};
                 optoptions.Display = disp;
                 optoptions.TolX = tolx;
                 optoptions.TolFun = tolfun;
                 optoptions.MaxFunEvals = maxeval;
                 optoptions.MaxIter = maxiter;
-                % Feed cached function values to BPS
+                % Feed cached function values to BADS
                 if any(options.BPSUseCacheEpochs == iEpoch) && isempty(bpscache)
                     bpscache.X = cache.x(1:cache.index,:);
                     bpscache.Y = cache.fval(1:cache.index,:);
                 end
+                nanidx = any(~isfinite(bpscache.X),2) | ~isfinite(bpscache.Y);
+                bpscache.X(nanidx,:) = [];
+                bpscache.Y(nanidx,:) = [];                
                 if any(options.BPSUseCacheEpochs == iEpoch)
                     optoptions.FunValues = bpscache;
                 end
                 PLB = options.InitRange(1,:);
                 PUB = options.InitRange(2,:);
-                [x,fval,exitflag,output1] = bps(funfcn,xstart,LB,UB,PLB,PUB,optoptions);
-                funcCount = output1.FuncCount;                
+                [x,fval,exitflag,output1] = bads(funfcn,xstart,LB,UB,PLB,PUB,optoptions);
+                funcCount = output1.funccount;                
         end
 
         % Store optimization results

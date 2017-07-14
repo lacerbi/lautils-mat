@@ -70,7 +70,15 @@ elseif isempty(x) && nargout == 0 && ...
     
 %% Case 3: Pass X, get output ==> Standard function call    
 else
-
+    if isempty(x) && nargin == 2 && isnumeric(varargin{1})
+        % MCS call
+        x = varargin{1}';
+        varargin = [];
+        mcs_flag = true;
+    else
+        mcs_flag = false;
+    end
+    
     % You need to initialize FUNLOGGER first
     if isempty(funlog)
         error('FUNLOGGER has not been initialized.');
@@ -83,15 +91,15 @@ else
 
     % Check if need to pass probstruct
     try
-        if nargin > 1
+        if nargin > 1 && ~mcs_flag
             fval = func(x,varargin{:});
         else
             fval = func(x);
         end
-    catch
+    catch funErr
         warning(['Error in executing the logged function ''' funlog.FuncName ''' with input:']);
         x
-        error('Execution interrupted.');
+        rethrow(funErr);
         % fval = NaN(1,funlog.OutSize);
     end
 
@@ -105,7 +113,11 @@ else
 
     funlog.last = max(1,mod(funlog.last+1, funlog.N+1));
     funlog.X(funlog.last,:) = x;
-    funlog.Y(funlog.last,:) = fval;
+    try
+        funlog.Y(funlog.last,:) = fval;
+    catch
+        pause
+    end
     
     varargout{1} = fval;
     if nargout > 1; varargout{2} = funlog; end
