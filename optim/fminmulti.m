@@ -391,14 +391,14 @@ for iEpoch = iEpoch0:maxEpochs
                 optoptions.MaxFunEvals = maxeval;
                 optoptions.MaxIter = maxiter;
                 % Feed cached function values to BADS
-                if any(options.BPSUseCacheEpochs == iEpoch) && isempty(bpscache)
-                    bpscache.X = cache.x(1:cache.index,:);
-                    bpscache.Y = cache.fval(1:cache.index,:);
-                end
-                nanidx = any(~isfinite(bpscache.X),2) | ~isfinite(bpscache.Y);
-                bpscache.X(nanidx,:) = [];
-                bpscache.Y(nanidx,:) = [];                
                 if any(options.BPSUseCacheEpochs == iEpoch)
+                    if isempty(bpscache)
+                        bpscache.X = cache.x(1:cache.index,:);
+                        bpscache.Y = cache.fval(1:cache.index,:);                        
+                    end
+                    nanidx = any(~isfinite(bpscache.X),2) | ~isfinite(bpscache.Y);
+                    bpscache.X(nanidx,:) = [];
+                    bpscache.Y(nanidx,:) = [];                
                     optoptions.FunValues = bpscache;
                 end
                 PLB = options.InitRange(1,:);
