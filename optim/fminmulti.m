@@ -255,6 +255,8 @@ else
     iStart0 = 0;
 end
 
+options
+
 lastsave = tic;    % Keep track of time
 
 % Loop over optimization epochs
@@ -294,12 +296,12 @@ for iEpoch = iEpoch0:maxEpochs
         
         iStart0 = 1;
     end
-    
-    bpscache = [];
-        
+            
     % Inner optimization loop
     for iStart = iStart0:nStarts(iEpoch)
-                        
+        
+        if iStart == 1; bpscache = []; end    
+        
         % Save current progress to file
         if ~isempty(options.SaveFile) && toc(lastsave) > options.SaveTime
             % if trace > 1;

@@ -489,9 +489,11 @@ function [exitflag,R,Neff,tau] = diagnose(samples,trace,options)
         end
         
     catch
+        warning(warning_orig);
         warning('Error while computing convergence diagnostics with PSRF.');
         R = NaN;
         Neff = NaN;
+        tau = NaN;
     end
 
 end
