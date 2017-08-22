@@ -255,8 +255,6 @@ else
     iStart0 = 0;
 end
 
-options
-
 lastsave = tic;    % Keep track of time
 
 % Loop over optimization epochs
