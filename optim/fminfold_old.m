@@ -1,4 +1,4 @@
-function [xs,fvals,exitflag,output,ftests] = fminfold(fun,x0,optfun,trainmask,options)
+function [xs,fvals,exitflag,output,ftests] = fminfold_old(fun,x0,optfun,trainmask,options)
 %FMINTASK Perform minimization of multiple related tasks.
 
 if nargin < 5; options = []; end
