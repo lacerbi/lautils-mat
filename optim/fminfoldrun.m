@@ -2,7 +2,7 @@ function [xs,fvals,ftests,exitflag,output] = fminfoldrun(optfun,maxfunevals,tolf
 %FMINTASK Perform minimization of multiple related tasks.
 
 if nargin < 2; maxfunevals = []; end
-if nargin < 3 || isempty(tolfun); tolfun = 1e-3; end
+if nargin < 3 || isempty(tolfun); tolfun = 0.1; end
 
 % Get current log
 foldlog = fminfoldfun();
@@ -25,12 +25,13 @@ Nfolds = size(trainmask,1);
 Ndata = size(trainmask,2);
 
 bestfvals = foldlog.BestFval;       % Current best fold function values
-bestfvals(foldlog.NewSearchFlag) = Inf;
+% bestfvals(foldlog.NewSearchFlag) = Inf;
 exitflag = zeros(1,Nfolds);
 output.funcCount = zeros(1,Nfolds);
 
 startFuncCount = foldlog.FuncCount;
-fold2run = foldlog.NewSearchFlag;   % Folds that need to be run
+startSearchFlag = foldlog.NewSearchFlag;
+fold2run = startSearchFlag;   % Folds that need to be run
 
 iter = 1;
 
@@ -62,11 +63,14 @@ while any(fold2run)
         foldlog = fminfoldfun();
         
         % Compute improvement for other folds (this one we just ran)
+        startSearchFlag(iFold) = false;
         bestfvals(iFold) = foldlog.BestFval(iFold);
         SearchImprovement = bestfvals - foldlog.BestFval;
         
-        fold2run = SearchImprovement > tolfun;
+        fold2run = (SearchImprovement > tolfun) | (iter == 1 & startSearchFlag);
         fold2run((foldlog.FuncCount - startFuncCount) > maxfunevals) = false;
+        
+        % SearchImprovement'
     end
     
     iter = iter + 1;
