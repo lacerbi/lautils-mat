@@ -29,6 +29,7 @@ bestfvals(foldlog.NewSearchFlag) = Inf;
 exitflag = zeros(1,Nfolds);
 output.funcCount = zeros(1,Nfolds);
 
+startFuncCount = foldlog.FuncCount;
 fold2run = foldlog.NewSearchFlag;   % Folds that need to be run
 
 iter = 1;
@@ -65,7 +66,7 @@ while any(fold2run)
         SearchImprovement = bestfvals - foldlog.BestFval;
         
         fold2run = SearchImprovement > tolfun;
-        fold2run(foldlog.FuncCount > maxfunevals) = false;
+        fold2run((foldlog.FuncCount - startFuncCount) > maxfunevals) = false;
     end
     
     iter = iter + 1;
