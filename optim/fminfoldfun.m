@@ -18,6 +18,9 @@ function varargout = fminfoldfun(x,varargin)
 %   to IFOLD (default IFOLD=1), and the cache size (number of stored function
 %   values) to N (default N=1e4).
 %
+%   FMINFOLDFUN([],FUN,FOLDLOG) initializes FMINFOLD with a log of previous
+%   runs FOLDLOG (see below).
+%
 %   FMINFOLDFUN([],[],[],[],IFOLD) sets the currently queried fold to IFOLD.
 %
 %   FVAL = FMINFOLDFUN(X) returns the value of the logged function at X,
@@ -45,6 +48,7 @@ function varargout = fminfoldfun(x,varargin)
 %--------------------------------------------------------------------------
 
 persistent foldlog;     % Record log of function calls
+persistent funhandle;   % Function handle
 
 %% Case 1: No arguments ==> return function log
 if nargin < 1
@@ -56,71 +60,89 @@ if nargin < 1
     %    x = temp;
     %end
 
-%% Case 2: Empty X, no output, pass function name or handle ==> Re-initialize log struct
-elseif isempty(x) && nargout == 0 && ~isempty(varargin{1}) && ...
-        (ischar(varargin{1}) || isa(varargin{1},'function_handle'))
+%% Case 2: Empty X, no output, pass several arguments ==> Re-initialize log struct
+elseif isempty(x) && nargout == 0 && ~isempty(varargin{2})
     
     % Reset log struct
     foldlog = [];
     
     % Read inputs
     fun = varargin{1};
-    mask = varargin{2};
-    testmask = varargin{3};
-    if nargin > 4; iFold = varargin{4}; else, iFold = 1; end
-    if nargin > 5; N = varargin{5}; else, N = []; end
+    if isempty(fun) && isempty(funhandle)
+        error('Objective function FUN not specified.');
+    end
+    
+    if isstruct(varargin{2}) && all(isfield(varargin{2}, ...
+            {'FuncName','OutSize','Mask','TestMask','X','Fval','FvalTest','BestX','BestFval','TestFvalAtBestX','N'}))        
+        
+        % Take FOLDLOG from previous run
+        foldlog = varargin{2};
+        
+    else    
+        mask = varargin{2};
+        testmask = varargin{3};
+        if nargin > 4; iFold = varargin{4}; else, iFold = 1; end
+        if nargin > 5; N = varargin{5}; else, N = []; end
 
+        % Number of stored function values
+        if isempty(N); N = 1e4; end
+
+        % Size of function output arguments
+        foldlog.OutSize = size(mask,2);
+
+        % Fold mask
+        if any(all(mask == 0,2))
+            error('At least one row of MASK contains all zeroes.');
+        end
+        foldlog.Mask = mask;
+        nfolds = size(mask,1);
+
+        % Test mask (used for testing)
+        if isempty(testmask)
+            testmask = ~mask;   % By default, take complement
+            idx = find(all(testmask,2));
+            if ~isempty(idx); testmask(idx,:) = true; end
+        end
+        if any(size(mask) ~= size(testmask))
+            error('MASK and TESTMASK should have the same size.');
+        end
+        foldlog.TestMask = testmask;
+
+        % Current fold
+        testifold(iFold,nfolds);
+        foldlog.iFold = iFold;    
+
+        foldlog.Clock = tic;                    % Time of initialization
+        foldlog.FuncCount = zeros(1,nfolds);    % Function count per fold
+        foldlog.X = [];
+        foldlog.Fval = [];
+        foldlog.FvalTest = [];
+
+        % Best results for each fold
+        foldlog.BestX = [];
+        foldlog.BestFval = Inf(nfolds,1);
+        foldlog.TestFvalAtBestX = Inf(nfolds,1);
+        foldlog.NewSearchFlag = false(nfolds,1);
+
+        foldlog.N = N;           % Size of X matrix, temporary
+        foldlog.last = 0;        % Last entry
+    end
+    
     % Store function name and function handle
     if ischar(fun)
-        foldlog.FuncName = fun;
-        foldlog.FuncHandle = str2func(fun);
-    else
-        foldlog.FuncName = func2str(fun);
-        foldlog.FuncHandle = fun;        
+        funcname = fun;
+        funhandle = str2func(fun);
+        foldlog.FuncName = funcname;
+    elseif isa(fun,'function_handle')
+        funcname = func2str(fun);
+        funhandle = fun;
+        foldlog.FuncName = funcname;
     end
     
-    % Number of stored function values
-    if isempty(N); N = 1e4; end
-    
-    % Size of function output arguments
-    foldlog.OutSize = size(mask,2);
-    
-    % Fold mask
-    if any(all(mask == 0,2))
-        error('At least one row of MASK contains all zeroes.');
-    end
-    foldlog.Mask = mask;
-    nfolds = size(mask,1);
-        
-    % Test mask (used for testing)
-    if isempty(testmask)
-        testmask = ~mask;   % By default, take complement
-        idx = find(all(testmask,2));
-        if ~isempty(idx); testmask(idx,:) = true; end
-    end
-    if any(size(mask) ~= size(testmask))
-        error('MASK and TESTMASK should have the same size.');
-    end
-    foldlog.TestMask = testmask;
-    
-    % Current fold
-    testifold(iFold,nfolds);
-    foldlog.iFold = iFold;    
-    
-    foldlog.Clock = tic;                    % Time of initialization
-    foldlog.FuncCount = zeros(1,nfolds);    % Function count per fold
-    foldlog.X = [];
-    foldlog.Fval = [];
-    foldlog.FvalTest = [];
-    
-    % Best results for each fold
-    foldlog.BestX = [];
-    foldlog.BestFval = Inf(nfolds,1);
-    foldlog.TestFvalAtBestX = Inf(nfolds,1);
-    foldlog.NewSearchFlag = false(nfolds,1);
-    
-    foldlog.N = N;           % Size of X matrix, temporary
-    foldlog.last = 0;        % Last entry
+%     if isfield(foldlog,'FuncName') && ~isempty(foldlog.FuncName) && ~strcmp(foldlog.FuncName,funcname)
+%         warning('Function name in loaded FMINLOG and provided FUN do not match.');
+%     end
+
     
 %% Case 3: Empty X, no output, non-empty fifth argument, set IFOLD
 elseif isempty(x) && nargout == 0 && nargin == 5 ...
@@ -149,22 +171,19 @@ else
         error('IFOLD not specified. Use FMINFOLD([],[],IFOLD) to select a fold to evaluate.');
     end
 
-    % Call function
-    func = foldlog.FuncHandle;
-
     % Check if need to pass additional arguments
     try        
         if nargin > 1
             if ~gradient_flag
-                fval = func(x,varargin{:});
+                fval = funhandle(x,varargin{:});
             else
-                [fval,df] = func(x,varargin{:});    % Get gradient as well
+                [fval,df] = funhandle(x,varargin{:});    % Get gradient as well
             end
         else
             if ~gradient_flag
-                fval = func(x);
+                fval = funhandle(x);
             else
-                [fval,df] = func(x);                % Get gradient as well
+                [fval,df] = funhandle(x);                % Get gradient as well
             end
         end
     catch funcError

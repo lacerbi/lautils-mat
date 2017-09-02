@@ -170,6 +170,19 @@ for f = {'MidpointStart','RescaleVars','Cache'}
     options.(f{:}) = onoff(options.(f{:}));
 end
 
+fminfold_flag = false;
+try
+    temp = fun();    % Get FOLDLOG
+    if isstruct(temp) && all(isfield(temp, ...
+            {'FuncName','OutSize','Mask','TestMask','X','Fval','FvalTest','BestX','BestFval','TestFvalAtBestX','N'}))        
+        fminfold_flag = true;
+    end
+    clear temp;
+catch
+    % Failed
+end
+
+
 if ~isempty(options.LoadFile) && exist(options.LoadFile,'file')
     %% Load interrupted execution from file
     
@@ -181,6 +194,9 @@ if ~isempty(options.LoadFile) && exist(options.LoadFile,'file')
     % if trace > 1; 
         fprintf('Loading ongoing optimization from file ''%s''.\n', options.LoadFile); 
     % end
+    
+    % Reinitialize FMINFOLD with saved FOLDLOG
+    if fminfold_flag; fminfoldfun([],[],foldlog); end
 
     % Copy some new OPTIONS to the old options structure
     copyfields = {'LoadFile','SaveFile','SaveTime','Display'};    
@@ -302,6 +318,9 @@ for iEpoch = iEpoch0:maxEpochs
         
         % Save current progress to file
         if ~isempty(options.SaveFile) && toc(lastsave) > options.SaveTime
+            % Get updated FOLDLOG
+            if fminfold_flag; foldlog = fun(); end
+            
             % if trace > 1;
                 fprintf('Saving temp file ''%s''...\n', options.SaveFile); 
             % end
