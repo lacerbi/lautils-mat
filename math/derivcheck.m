@@ -9,6 +9,10 @@ tic
 [y,dy_ana] = f(x);
 toc
 
+% Reshape to row vectors
+dy_num = dy_num(:)';
+dy_ana = dy_ana(:)';
+
 fprintf('Relative errors:\n');
 (dy_num - dy_ana)./dy_num
 
