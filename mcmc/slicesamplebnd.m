@@ -66,7 +66,7 @@ function [samples,fvals,exitflag,output] = slicesamplebnd(logf,x0,N,widths,LB,UB
 %     performed at the end of the run. Diagnostics is a boolean value. Set 
 %     OPTIONS.Diagnostics to true to run the diagnostics, false to skip it. 
 %     The default for OPTIONS.Diagnostics is true. The diagnostics tests 
-%     use the PSRF function by Simo Särkkä and Aki Vehtari, which implements 
+%     use the PSRF function by Simo Sï¿½rkkï¿½ and Aki Vehtari, which implements 
 %     diagnostics from Gelman et al. (2013).
 %
 %   SAMPLES = SLICESAMPLEBND(...,VARARGIN) passes additional arguments
@@ -398,6 +398,8 @@ if options.Diagnostics && (nargout > 2 || trace > 0)
     if trace > 0 && ~isempty(diagstr)
         fprintf(diagstr);
     end
+else
+    exitflag = 0;
 end
 
 if trace > 0
