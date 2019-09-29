@@ -9,7 +9,7 @@ function s = logsumexp(X,dim)
 
 % Based on code by Tom Minka and Mo Chen.
 
-if nargin == 1, 
+if nargin == 1
     % Determine which dimension sum will use
     dim = find(size(X)~=1,1);
     if isempty(dim), dim = 1; end
