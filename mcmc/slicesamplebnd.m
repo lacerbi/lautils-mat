@@ -234,11 +234,14 @@ for ii = 1:(effN+burn)
     end
     
     %% Slice-sampling step
-    
-    % Axes sweep
-    for dd = 1:D
-        if LB(dd) == UB(dd); continue; end      % Fixed dimension, skip
 
+    % Random-permutation axes sweep    
+    dvec = randperm(D);
+    for idd = 1:D
+        dd = dvec(idd);
+        
+        if LB(dd) == UB(dd); continue; end      % Fixed dimension, skip
+    
         log_uprime = log(rand) + log_Px;
         
         x_l = xx;
@@ -490,9 +493,9 @@ function [exitflag,R,Neff,tau] = diagnose(samples,trace,options)
             fprintf(diagstr);
         end
         
-    catch
+    catch ME
         warning(warning_orig);
-        warning('Error while computing convergence diagnostics with PSRF.');
+        warning(['Error while computing convergence diagnostics with PSRF: ', ME.message]);
         R = NaN;
         Neff = NaN;
         tau = NaN;
