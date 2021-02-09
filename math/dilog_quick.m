@@ -1,5 +1,5 @@
 function y = dilog_quick(x)
-%DILOG_APPROX Quick approximation of Spence's function in [0,1].
+%DILOG_QUICK Quick approximation of Spence's function in [0,1].
 
 p = [0.6,0.9,0.985];
 y = zeros(size(x));
