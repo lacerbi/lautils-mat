@@ -5,9 +5,10 @@ if nargin < 2 || isempty(nmax); nmax = 1e6; end
 
 y = zeros(size(x));
 k = 1:ceil(nmax);
+ik2 = 1./k.^2;
 
 for i = 1:numel(x)
-    y(i) = sum(x(i).^k./k.^2);
+    y(i) = sum(x(i).^k.*ik2);
 end
 
 y(x < 0 | x > 1) = NaN;
